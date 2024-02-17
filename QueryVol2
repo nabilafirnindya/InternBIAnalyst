@@ -1,0 +1,144 @@
+-- 1.isi setiap tabel
+SELECT * from rakamin.ProductCategory;
+SELECT * from rakamin.Products;
+SELECT * from rakamin.customers;
+SELECT * from rakamin.orders;
+
+-- 2.product dengan harga dibawah 5000
+SELECT * from rakamin.Products
+WHERE Price < 5000;
+
+-- 3.harga setiap produk dibanding harga rata-rata
+SELECT * ,
+avg(price) OVER() as ratarata
+from rakamin.Products;
+
+-- 4.nama produk masing-masing kategori
+SELECT CategoryName,Prod_Number,Prod_Name 
+from rakamin.ProductCategory
+join rakamin.Products on CategoryID=Category;
+
+-- 5.jumlah produk masing-masing jenis
+SELECT CategoryName,count(Prod_Name) as jumlah_produk 
+from rakamin.ProductCategory
+join rakamin.Products on CategoryID=Category
+group by 1
+order by 2;
+
+-- 6.daftar customer yang berada di OHIO
+SELECT customer_id, concat(first_name,' ',Last_Name) as name, Customer_City from rakamin.customers
+where customer_state = 'Ohio';
+
+--7. Jumlah customer tiap kota
+SELECT customer_city, count(customer_id) as n_cust from rakamin.customers
+group by 1;
+
+--8. Customer yang menggunakan email google 
+SELECT * FROM rakamin.customers
+WHERE customer_email LIKE '%google%'
+
+--9. Produk yang dibeli tiap-tiap user 
+SELECT concat(First_Name,'',Last_Name) as name, prod_name 
+FROM rakamin.customers
+JOIN rakamin.orders on CustomerID = Customer_ID
+JOIN rakamin.Products on ProdNumber = prod_number;
+
+--10. jumlah produk yang pernah dibeli masing-masing customer
+WITH list_product as 
+( 
+  SELECT concat(First_Name,' ',Last_Name) as name, prod_name 
+FROM rakamin.customers
+JOIN rakamin.orders on CustomerID = Customer_ID
+JOIN rakamin.Products on ProdNumber = prod_number)
+SELECT name, count(name) as jumlahproduk
+from list_product
+group by 1;
+
+--11. customer yang pernah membeli lebih dari 3 produk
+WITH list_product as 
+( 
+  SELECT concat(First_Name,' ',Last_Name) as name, prod_name 
+FROM rakamin.customers
+JOIN rakamin.orders on CustomerID = Customer_ID
+JOIN rakamin.Products on ProdNumber = prod_number)
+SELECT name, count(name) as jumlahproduk
+from list_product
+group by 1
+having count(name) > 3;
+
+--12. Jumlah produk terjual tiap-tiap produk
+select ProdNumber, sum(Quantity) as jumlahjual 
+from rakamin.orders
+group by 1;
+
+--13. TOP 5 produk best seller 
+select ProdNumber, sum(Quantity) as jumlahjual 
+from rakamin.orders
+group by 1
+order by 2 desc
+LIMIT 5;
+
+--14. Jumlah penjualan setiap kota
+SELECT Customer_City, count(Customer_ID) as jumlahpenjualan
+FROM rakamin.customers
+JOIN rakamin.orders on Customer_ID=CustomerID
+GROUP BY 1
+ORDER BY 2 desc;
+
+--15. 5 kota dengan penjualan terendah
+SELECT customer_state, Customer_City, count(Customer_ID) as jumlahpenjualan
+FROM rakamin.customers
+JOIN rakamin.orders on Customer_ID=CustomerID
+GROUP BY 1,2
+ORDER BY 3
+LIMIT 10;
+
+16.State yang hanya memiliki lebih dari 10 kota
+WITH datakota as 
+(
+SELECT customer_state, COUNT
+(customer_city) as jumlahkota from rakamin.customers
+group by 1
+order by 2 desc)
+SELECT * from datakota
+WHERE jumlahkota > 10;
+
+17. Jumlah barang terjual di tahun 2020
+SELECT EXTRACT(YEAR FROM Date) as YEAR, ProdNumber, sum(quantity) as jumlahproduksold
+ from rakamin.orders
+ where Date BETWEEN '2020-01-01' and '2020-12-31'
+ group by 1,2
+ order by 3 desc;
+
+18. TOP 5 produk yang terjual di tahun 2021
+with list2021 as (
+  SELECT EXTRACT(YEAR FROM Date) as YEAR, ProdNumber, sum(quantity) as jumlahproduksold
+ from rakamin.orders
+ where Date BETWEEN '2021-01-01' and '2021-12-31'
+ group by 1,2
+ order by 3 desc
+ )
+ SELECT YEAR, ProdNumber, Prod_Name, Jumlahproduksold
+ FROM list2021
+ JOIN rakamin.Products on Prod_Number=ProdNumber
+ order by 4 desc
+ LIMIT 5;
+
+19. Jumlah penjualan setiap tahun 
+SELECT EXTRACT(YEAR FROM Date) AS YEAR, SUM(quantity * price) AS totaltransaksi
+FROM rakamin.orders
+JOIN rakamin.Products ON Prod_Number = ProdNumber
+GROUP BY 1;
+
+20. Produk dan kategori produk yang terjual paling sedikit tiap tahun
+with listproduk as (
+  SELECT EXTRACT(YEAR FROM Date) as YEAR, ProdNumber, sum(quantity) as jumlahproduksold
+ from rakamin.orders
+ group by 1,2
+ order by 3 asc
+ )
+ SELECT YEAR, CategoryName, Prod_Name, Jumlahproduksold
+ FROM listproduk
+ JOIN rakamin.Products on Prod_Number=ProdNumber
+ JOIN rakamin.ProductCategory on CategoryID=Category
+order by 4 asc;
